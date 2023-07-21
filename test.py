@@ -4,11 +4,11 @@ import torch
 import random
 
 
-from third_party.diffusers import AutoencoderKL, PNDMScheduler,UNet2DConditionModel as UNet2DConditionModel_GLIGEN
-from diffusers import UNet2DConditionModel
+from diffusers import AutoencoderKL, PNDMScheduler, UNet2DConditionModel
+from third_party.unet_2d_condition import UNet2DConditionModel as UNet2DConditionModel_GLIGEN
 from PIL import Image
 from tqdm.auto import tqdm
-from typing import  List, Optional, Union
+from typing import List, Optional, Union
 from torchvision.utils import save_image
 import inspect
 from transformers import CLIPTokenizer, CLIPTextModel
@@ -20,8 +20,9 @@ from einops import rearrange
 import open_clip
 from torchvision import transforms
 from segment_anything import build_sam, SamPredictor
-from third_party.localization_loss import unet_gligen_store_cross_attention_scores
-from modules import  MLP,GroundingNet
+from third_party.localization_loss import unet_store_cross_attention_scores
+from modules import MLP, GroundingNet
+import argparse
 
 unet_config = {
     "act_fn": 'silu',
@@ -70,7 +71,7 @@ MAX_NUMBER_OBJECTS = 2
 
 class StableDiffusionTest():
 
-    def __init__(self, model_path, unet_path, clip_text_path, mlp_path,proj_path,open_clip_path,sam_path, device):
+    def __init__(self, model_path, unet_path, clip_text_path, mlp_path, proj_path, open_clip_path, sam_path, device):
         super().__init__()
         self.tokenizer = CLIPTokenizer.from_pretrained(
             model_path, subfolder="tokenizer")
@@ -84,7 +85,7 @@ class StableDiffusionTest():
         self.unet.load_state_dict(torch.load(unet_path), strict=True)
         self.mlp = MLP(1024, 1024, 1024, use_residual=False)
         self.mlp.load_state_dict(torch.load(mlp_path), strict=True)
-        self.proj = GroundingNet(1280, 1024, 1024,use_bbox=False)
+        self.proj = GroundingNet(1280, 1024, 1024, use_bbox=False)
 
         self.proj.load_state_dict(torch.load(proj_path, map_location="cpu"))
         self.unet_ori = UNet2DConditionModel.from_pretrained(
@@ -96,7 +97,8 @@ class StableDiffusionTest():
         self.unet.eval()
         self.unet_ori.eval()
 
-        self.model_clip, _, self.preprocess = open_clip.create_model_and_transforms("ViT-H-14", pretrained=open_clip_path)
+        self.model_clip, _, self.preprocess = open_clip.create_model_and_transforms(
+            "ViT-H-14", pretrained=open_clip_path)
         self.model_clip.visual.output_tokens = True
         self.image_transforms = transforms.Compose(
             [
@@ -107,18 +109,16 @@ class StableDiffusionTest():
                 transforms.Normalize(mean=0.5, std=0.5)
             ]
         )
-        
+
         self.sam_model = build_sam(checkpoint=sam_path)
         self.sam_model.to(device=device)
         self.predictor = SamPredictor(self.sam_model)
         self.cross_attention_scores = {}
-        self.unet = unet_gligen_store_cross_attention_scores(
+        self.unet = unet_store_cross_attention_scores(
             self.unet, self.cross_attention_scores, 5
         )
         self.image_infos = {}
         replace_clip_embeddings(self.text_encoder, self.image_infos)
-
-
 
     def encode_images_mask_old(self, device, images):
         masks = []
@@ -129,10 +129,11 @@ class StableDiffusionTest():
             size = 350
 
             mask_img = torch.ones((1, 1, width_x, width_y))
-            if isinstance(image,list):
-                mask_img[:,:,100:400, 50:200] = 0
-                mask_img[:,:,100:400, 300:500] = 0
-                bbox = torch.tensor(([[50, 100, 200, 400],[300, 100, 500, 400]]))/512
+            if isinstance(image, list):
+                mask_img[:, :, 100:400, 50:200] = 0
+                mask_img[:, :, 100:400, 300:500] = 0
+                bbox = torch.tensor(
+                    ([[50, 100, 200, 400], [300, 100, 500, 400]]))/512
                 bboxes.append(bbox)
             else:
                 seed1 = random.uniform(0.6, 0.8)
@@ -140,15 +141,17 @@ class StableDiffusionTest():
                 chars_w, chars_h = int(size*seed1), int(size*seed2)
                 chars_x = random.randint(10, 200)
                 chars_y = random.randint(10, 200)
-                mask_img[:, :, chars_y: chars_y + chars_h,chars_x: chars_x + chars_w] = 0
-                bbox = torch.tensor(([[chars_x, chars_y, chars_x + chars_w, chars_y + chars_h],[0, 0, 0, 0]]))/512
+                mask_img[:, :, chars_y: chars_y + chars_h,
+                         chars_x: chars_x + chars_w] = 0
+                bbox = torch.tensor(
+                    ([[chars_x, chars_y, chars_x + chars_w, chars_y + chars_h], [0, 0, 0, 0]]))/512
                 bboxes.append(bbox)
-            mask_img_resize = transforms.Resize((64, 64), interpolation=transforms.InterpolationMode.NEAREST)(mask_img)
+            mask_img_resize = transforms.Resize(
+                (64, 64), interpolation=transforms.InterpolationMode.NEAREST)(mask_img)
             masks.append(mask_img_resize)
-        return torch.cat(masks).to(device),torch.stack(bboxes).to(device)
+        return torch.cat(masks).to(device), torch.stack(bboxes).to(device)
 
-
-    def encode_images_test(self, images, bboxes,device):
+    def encode_images_test(self, images, bboxes, device):
         image_tensor = torch.empty(
             len(images), MAX_NUMBER_OBJECTS, 3, 224, 224, device=device)
         image_token_idx_mask = torch.zeros(
@@ -167,10 +170,8 @@ class StableDiffusionTest():
         image_embeddings = rearrange(
             image_embeddings, "(b n) h d -> b n h d", n=MAX_NUMBER_OBJECTS)
         image_embeddings = self.proj.to(device)(
-            image_embeddings, image_token_idx_mask,bboxes)
+            image_embeddings, image_token_idx_mask, bboxes)
         return image_embeddings_cls.view(len(images), MAX_NUMBER_OBJECTS, -1), image_embeddings
-
-    
 
     def generate_text_inputs(self, prompts, entities, device):
         image_token_mask = torch.zeros(
@@ -214,15 +215,14 @@ class StableDiffusionTest():
         #     attention_mask = text_inputs.attention_mask.to(device)
         # else:
         #     attention_mask = None
-        image_embeddings_cls,image_embeddings = self.encode_images_test(images,bboxes, device)
-        
+        image_embeddings_cls, image_embeddings = self.encode_images_test(
+            images, bboxes, device)
+
         self.image_infos["image_embedding"] = image_embeddings_cls[image_token_idx_mask]
         self.image_infos["image_token_mask"] = image_token_mask
 
-
         encoder_hidden_states = self.text_encoder(
-           text_inputs.to(device).input_ids)[0]
-
+            text_inputs.to(device).input_ids)[0]
 
         self.image_infos["image_embedding"] = None
         self.image_infos["image_token_mask"] = None
@@ -233,7 +233,7 @@ class StableDiffusionTest():
             truncation=True,
             return_tensors="pt",
         )
-        #text_embeddings = self.text_encoder(
+        # text_embeddings = self.text_encoder(
         #    **ori_text_input.to(device))[0]
         text_embeddings = self.text_encoder(
             ori_text_input.to(device).input_ids)[0]
@@ -276,7 +276,7 @@ class StableDiffusionTest():
 
             self.image_infos["image_embedding"] = None
             self.image_infos["image_token_mask"] = None
-            #uncond_embeddings = self.text_encoder(
+            # uncond_embeddings = self.text_encoder(
             #    **uncond_input.to(device))[0]
             uncond_embeddings = self.text_encoder(
                 uncond_input.to(device).input_ids)[0]
@@ -291,7 +291,6 @@ class StableDiffusionTest():
             encoder_hidden_states = torch.cat(
                 [encoder_hidden_states, uncond_embeddings, uncond_embeddings])
         return encoder_hidden_states, text_embeddings, image_embeddings, image_embeddings_cls
-
 
     def prepare_extra_step_kwargs(self, generator, eta):
         accepts_eta = "eta" in set(inspect.signature(
@@ -336,6 +335,7 @@ class StableDiffusionTest():
         self,
         device,
         inputs,
+        dataset_path,
         height: Optional[int] = 512,
         width: Optional[int] = 512,
         num_inference_steps: int = 50,
@@ -361,21 +361,19 @@ class StableDiffusionTest():
                 for phrase in t["phrases"]:
 
                     subject_path = os.path.join(
-                        "/public_data/liangjunhao/GLIGEN/dreambooth-main/dataset/", phrase)
+                       dataset_path, phrase)
                     tmp_images.append(Image.open(os.path.join(
                         subject_path, sorted(os.listdir(subject_path))[0])))
                 images.append(tmp_images)
             else:
                 subject_path = os.path.join(
-                    "/public_data/liangjunhao/GLIGEN/dreambooth-main/dataset/", t["phrases"])
+                    dataset_path, t["phrases"])
                 images.append(Image.open(os.path.join(
                     subject_path, sorted(os.listdir(subject_path))[0])))
         # latents_c2 = torch.zeros(len(images),1,64,64,device=device)
         # sam
 
         def sam(image, entity):
-            image.save(os.path.join(
-                img_path, f"{entity}-00_ori.png"))
 
             numpy_image = np.array(image)
             self.predictor.set_image(numpy_image)
@@ -399,13 +397,6 @@ class StableDiffusionTest():
             y, x = np.where(mask)
             ret_image = Image.fromarray(
                 numpy_image[y.min():y.max(), x.min():x.max(), :])
-            # ret_image = Image.fromarray(
-            #     mask[y.min():y.max(), x.min():x.max()])
-            # latents_c2[idx,0,y.min():y.max()+1,x.min():x.max()+1]=1
-
-            # images[idx] = Image.fromarray(numpy_image)
-            ret_image.save(os.path.join(
-                img_path, f"{entity}-00_masked.png"))
             return ret_image
         for idx in range(len(images)):
 
@@ -421,10 +412,10 @@ class StableDiffusionTest():
         batch_size = 1 if isinstance(prompts, str) else len(prompts)
         do_classifier_free_guidance = guidance_scale > 0.5
 
-        latents_c2,bboxes = self.encode_images_mask_old(device, images)
+        latents_c2, bboxes = self.encode_images_mask_old(device, images)
 
-        text_embeddings, text_embeddings_ori,image_embeddings,image_embeddings_cls = self.encode_prompt(
-            prompts, entitys, images, bboxes,device, num_images_per_prompt, do_classifier_free_guidance, negative_prompt)
+        text_embeddings, text_embeddings_ori, image_embeddings, image_embeddings_cls = self.encode_prompt(
+            prompts, entitys, images, bboxes, device, num_images_per_prompt, do_classifier_free_guidance, negative_prompt)
         # text_embeddings_ori = self.encode_prompt(
         #     prompts, entitys, images, device, num_images_per_prompt, do_classifier_free_guidance, negative_prompt, token=False)
 
@@ -449,7 +440,7 @@ class StableDiffusionTest():
 
         objects = image_embeddings
         uncond_objects = torch.zeros_like(objects)
-        input_objects = torch.cat([objects, objects, uncond_objects]) 
+        input_objects = torch.cat([objects, objects, uncond_objects])
         for i, t in enumerate(tqdm(timesteps)):
 
             # expand the latents if we are doing classifier free guidance
@@ -461,7 +452,7 @@ class StableDiffusionTest():
                 [latent_model_input, font_latents], dim=1)
             if i < self_timesteps:
                 noise_pred = self.unet.half()(latent_model_input.half(), t,
-                                              encoder_hidden_states=text_embeddings.half(),objs=input_objects.half()).sample
+                                              encoder_hidden_states=text_embeddings.half(), objs=input_objects.half()).sample
                 if do_classifier_free_guidance:
                     noise_pred_text, noise_pred_image, noise_pred_uncond = noise_pred.chunk(
                         3)
@@ -512,41 +503,54 @@ class StableDiffusionTest():
         return image, torch.cat(out_map, dim=1).mean(1, keepdim=True)
 
 
-test_prompts = "./test_prompts/test_glyphdraw_multi2.json"
-ids = 449999 
-method_name = "stablediffusion_glyphdraw_token_multi_gligen_kv_bbox"
-with open(test_prompts, "r", encoding='utf-8') as f:
-    inputs = json.load(f)
-sam_path  = "/public_data/ma/models/sam/sam_vit_h_4b8939.pth"
-model_path = "/public_data/ma/stable_models/model_base"
+if __name__ == "__main__":
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument(
+        '--prompts_path', default="./test_prompts/test_glyphdraw_multi2.json", type=str)
+    args_parser.add_argument('--model_idx', default="449999", type=int)
+    args_parser.add_argument('--model_path', default="./checkpoints", type=str)
+    args_parser.add_argument(
+        '--base_model_path', default="./model_base", type=str)
+    args_parser.add_argument(
+        '--sam_path', default="./sam_vit_h_4b8939.pth", type=str)
+    args_parser.add_argument(
+        '--open_clip_path', default="./ViT-H-14.pt", type=str)
+    args_parser.add_argument('--output_path', default="./output", type=str)
+    args_parser.add_argument('--guidance_scale', default=7.5, type=float)
+    args_parser.add_argument('--image_guidance_scale', default=1.5, type=float)
+    args_parser.add_argument('--batch_size', default=1, type=int)
+    args_parser.add_argument('--dataset_path', default="./dreambooth", type=str)
 
-unet_path = f"/public_data/liangjunhao/GLIGEN/results_mul/{method_name}/unet_0_{ids}/pytorch_model.bin"
-clip_text_path = f"/public_data/liangjunhao/GLIGEN/results_mul/{method_name}/clip_text_0_{ids}/pytorch_model.bin"
-mlp_path = f"/public_data/liangjunhao/GLIGEN/results_mul/{method_name}/mlp_0_{ids}/pytorch_model.bin"
-proj_path = f"/public_data/liangjunhao/GLIGEN/results_mul/{method_name}/proj_0_{ids}/pytorch_model.bin"
+    args = args_parser.parse_args()
 
-sam_checkpoint = "/public_data/ma/models/sam/sam_vit_h_4b8939.pth"
-open_clip_path = "/public_data/ma/models/ViT-H-14.pt"
+    with open(args.prompts_path, "r", encoding='utf-8') as f:
+        inputs = json.load(f)
 
-img_path = "output/"
-print("img_path:", img_path)
-os.makedirs(img_path, exist_ok=True)
+    unet_path = os.path.join(
+        args.model_path, f"unet_0_{args.model_idx}/pytorch_model.bin")
+    clip_text_path = os.path.join(
+        args.model_path, f"clip_text_0_{args.model_idx}/pytorch_model.bin")
+    mlp_path = os.path.join(
+        args.model_path, f"mlp_0_{args.model_idx}/pytorch_model.bin")
+    proj_path = os.path.join(
+        args.model_path, f"proj_0_{args.model_idx}/pytorch_model.bin")
 
-device = torch.device("cuda")
-lgp_test = StableDiffusionTest(
-    model_path, unet_path, clip_text_path, mlp_path,proj_path,open_clip_path,sam_path, device)
+    print("out_path:", args.output_path)
+    os.makedirs(args.output_path, exist_ok=True)
 
-guidance_scale = 7
-image_guidance_scale = 1.5
+    device = torch.device("cuda")
+    lgp_test = StableDiffusionTest(
+        args.base_model_path, unet_path, clip_text_path, mlp_path, proj_path, args.open_clip_path, args.sam_path, device)
 
-batch = 1
-inputs = inputs*batch
-raw_name = [t["prompt"] for t in inputs]
-for i in range(0, len(raw_name), batch):
-    text_batch = inputs[i:(i + batch)]
-    images, attention_map = lgp_test.log_imgs(device, text_batch, guidance_scale=guidance_scale,image_guidance_scale=image_guidance_scale)
-    for j in range(batch):
-        if j > len(images)-1:
-            continue
-        images[j].save(os.path.join(img_path, "{}-00_{}.jpg".format(text_batch[j]["phrases"],
-                    raw_name[i + j].replace(" ", "-")+str(i+j))), normalize=True)
+    batch = args.batch_size
+    inputs = inputs*batch
+    raw_name = [t["prompt"] for t in inputs]
+    for i in range(0, len(raw_name), batch):
+        text_batch = inputs[i:(i + batch)]
+        images, attention_map = lgp_test.log_imgs(
+            device, text_batch,args.dataset_path, guidance_scale=args.guidance_scale, image_guidance_scale=args.image_guidance_scale)
+        for j in range(batch):
+            if j > len(images)-1:
+                continue
+            images[j].save(os.path.join(args.output_path, "{}-00_{}.jpg".format(text_batch[j]["phrases"],
+                                                                                raw_name[i + j].replace(" ", "-")+str(i+j))), normalize=True)

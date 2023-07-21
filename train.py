@@ -13,12 +13,13 @@ from model_utils import (
     add_module_args,
     configure_optimizers,
 )
-from third_party.diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel, EulerDiscreteScheduler
+from diffusers import AutoencoderKL, DDPMScheduler, EulerDiscreteScheduler
+from third_party.unet_2d_condition import UNet2DConditionModel
 from torch.nn import functional as F
 from tqdm.auto import tqdm
 from typing import List, Optional, Union
 from einops import rearrange
-from third_party.localization_loss import unet_gligen_store_cross_attention_scores, BalancedL1Loss, get_object_localization_loss
+from third_party.localization_loss import unet_store_cross_attention_scores, BalancedL1Loss, get_object_localization_loss
 from replace_clip_embedding import replace_clip_embeddings
 from utils import save_model, numpy_to_pil
 from torchvision.utils import save_image
@@ -184,7 +185,7 @@ class StableDiffusion(LightningModule):
         # self.image_augmentation = transforms.Compose([transforms.RandomHorizontalFlip(
         #     p=0.5), transforms.RandomRotation(degrees=10), transforms.RandomPerspective(distortion_scale=0.5, p=0.5)])
         self.cross_attention_scores = {}
-        self.unet = unet_gligen_store_cross_attention_scores(
+        self.unet = unet_store_cross_attention_scores(
             self.unet, self.cross_attention_scores, 5
         )
         if Object_localization:
