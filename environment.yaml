@@ -1,0 +1,49 @@
+name: subject-diffusion
+channels:
+  - pytorch
+  - conda-forge
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+  - defaults
+dependencies:
+  - cudatoolkit=11.6.0=hecad31d_10
+  - numpy=1.23.4=py39h14f4228_0
+  - pandas=1.5.1=py39h417a72b_0
+  - pillow=9.2.0=py39hace64e9_1
+  - pip=22.2.2=py39h06a4308_0
+  - python=3.9.15=haa1d7c7_0
+  - pytorch=1.12.1=py3.9_cuda11.6_cudnn8.3.2_0
+  - pytorch-lightning=1.7.7=pyhd8ed1ab_0
+  - setuptools=65.5.0=py39h06a4308_0
+  - six=1.16.0=pyhd3eb1b0_1
+  - sqlite=3.40.0=h5082296_0
+  - tensorboard=2.11.0=pyhd8ed1ab_0
+  - torchaudio=0.12.1=py39_cu116
+  - torchmetrics=0.10.3=pyhd8ed1ab_0
+  - torchvision=0.13.1=py39_cu116
+  - tqdm=4.64.1=pyhd8ed1ab_0
+  - xz=5.2.6=h5eee18b_0
+  - yaml=0.2.5=h7f98852_2
+  - pip:
+    - accelerate==0.14.0
+    - asyncio==3.4.3
+    - braceexpand==0.1.7
+    - cmake==3.25.0
+    - deepspeed==0.7.5
+    - diffusers==0.18.2
+    - einops==0.6.1
+    - grpcio==1.50.0
+    - huggingface-hub==0.11.0
+    - imgviz==1.7.2
+    - ninja==1.11.1
+    - open-clip-torch==2.20.0
+    - opencv-python==4.7.0.72
+    - prefetch-generator==1.0.3
+    - protobuf==4.21.9
+    - pydantic==1.10.2
+    - regex==2022.10.31
+    - segment-anything==1.0
+    - spacy==3.5.3
+    - tokenizers==0.13.2
+    - transformers==4.24.0
+    - webdataset==0.2.30
+prefix: /data/majian/anaconda3/envs/stable

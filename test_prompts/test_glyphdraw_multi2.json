@@ -1,0 +1,141 @@
+[{
+    "prompt": "a dog and a cat playing on the beach",
+    "phrases": ["dog7","cat2"],
+    "entities": ["dog","cat"]
+},
+{
+    "prompt": "a cat and a dog with a city in the background",
+    "phrases": ["cat2","dog7"],
+    "entities": ["cat","dog"]
+},
+{
+    "prompt": "a duck toy and a wolf plushie floating on top of water",
+    "phrases": ["duck_toy","wolf_plushie"],
+    "entities": ["duck toy","wolf plushie"]
+},
+{
+    "prompt": "a duck toy and a wolf plushie on the beach",
+    "phrases": ["duck_toy","wolf_plushie"],
+    "entities": ["duck toy","wolf plushie"]
+},
+    {
+        "prompt": "a running cat on the beach",
+        "phrases": "cat2",
+        "entities":"cat"
+    },
+    {
+        "prompt": "a running cat with a city in the background",
+        "phrases": "cat2",
+        "entities":"cat"
+    },
+    {
+        "prompt": "a running cat in a police outfit",
+        "phrases": "cat2",
+        "entities":"cat"
+    },
+    {
+        "prompt": "a sitting dog on the beach",
+        "phrases": "dog2",
+        "entities":"dog"
+    },
+    {
+        "prompt": "a sitting dog with a city in the background",
+        "phrases": "dog2",
+        "entities":"dog"
+    },
+    {
+        "prompt": "a sitting dog in a police outfit",
+        "phrases": "dog2",
+        "entities":"dog"
+    },
+    {
+        "prompt": "a running dog on the beach",
+        "phrases": "dog7",
+        "entities":"dog"
+    },
+    {
+        "prompt": "a running dog with a city in the background",
+        "phrases": "dog7",
+        "entities":"dog"
+    },
+    {
+        "prompt": "a running dog in a police outfit",
+        "phrases": "dog7",
+        "entities":"dog"
+    },
+    {
+        "prompt": "a berry bowl on the beach",
+        "phrases": "berry_bowl",
+        "entities":"berry bowl"
+    },
+    {
+        "prompt": "a berry bowl with a city in the background",
+        "phrases": "berry_bowl",
+        "entities":"berry bowl"
+    },
+    {
+        "prompt": "a berry bowl floating on top of water",
+        "phrases": "berry_bowl",
+        "entities":"berry bowl"
+    },
+    {
+        "prompt": "a duck toy on the beach",
+        "phrases": "duck_toy",
+        "entities":"duck toy"
+    },
+    {
+        "prompt": "a duck toy with a city in the background",
+        "phrases": "duck_toy",
+        "entities":"duck toy"
+    },
+    {
+        "prompt": "a duck toy floating on top of water",
+        "phrases": "duck_toy",
+        "entities":"duck toy"
+    },
+    {
+        "prompt": "a poop emoji on the beach",
+        "phrases": "poop_emoji",
+        "entities":"poop emoji"
+    },
+    {
+        "prompt": "a poop emoji with a city in the background",
+        "phrases": "poop_emoji",
+        "entities":"poop emoji"
+    },
+    {
+        "prompt": "a poop emoji floating on top of water",
+        "phrases": "poop_emoji",
+        "entities":"poop emoji"
+    },
+    {
+        "prompt": "a red cartoon on the beach",
+        "phrases": "red_cartoon",
+        "entities":"red cartoon"
+    },
+    {
+        "prompt": "a red cartoon with a city in the background",
+        "phrases": "red_cartoon",
+        "entities":"red cartoon"
+    },
+    {
+        "prompt": "a red cartoon floating on top of water",
+        "phrases": "red_cartoon",
+        "entities":"red cartoon"
+    },
+    {
+        "prompt": "a wolf plushie on the beach",
+        "phrases": "wolf_plushie",
+        "entities":"wolf plushie"
+    },
+    {
+        "prompt": "a wolf plushie with a city in the background",
+        "phrases": "wolf_plushie",
+        "entities":"wolf plushie"
+    },
+    {
+        "prompt": "a wolf plushie floating on top of water",
+        "phrases": "wolf_plushie",
+        "entities":"wolf plushie"
+    }
+]
