@@ -322,7 +322,7 @@ post_key_verifier = wds.filters.pipelinefilter(post_verify)
 
 class ImageEmbeddingDataset(wds.DataPipeline, wds.compat.FluidInterface):
     """
-    A fluid interface wrapper for DataPipline that returns image embedding pairs
+    A fluid interface wrapper for DataPipeline that returns image embedding pairs
     Reads embeddings as npy files from the webdataset if they exist. If embedding_folder_url is set, they will be inserted in from the alternate source.
     """
 
