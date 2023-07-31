@@ -44,6 +44,7 @@ python test.py
 - [x] Release training code
 - [x] Release data preparation code
 - [ ] Release demo
+- [ ] Release training data
 
 
 ## Acknowledgements
