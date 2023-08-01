@@ -3,6 +3,7 @@
 
 [[Project Page](https://oppo-mente-lab.github.io/subject_diffusion/)] [[Paper](https://arxiv.org/abs/2307.11410)]
 
+!(figures/banner.pdf)
 
 ## Requirements
 A suitable [conda](https://conda.io/) environment named `subject-diffusion` can be created
@@ -14,14 +15,16 @@ conda activate subject-diffusion
 ```
 
 ## Data Prepare 
+!(figures/data_collection.pdf)
 First, you need install [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO/). Then run:
 ```bash
 python data_process.py tar_path tar_index_begin tar_index_end output_path
 ```
 The first parameter represents the data path of webdataset image text pair. The original data can be downloaded by [img2dataset](https://github.com/rom1504/img2dataset) command; The last two parameters represent the beginning and end of the index for webdataset data
 
-## Training 
 
+## Training 
+!(figures/model.pdf)
 
 ```bash
 bash train.sh 0 8
