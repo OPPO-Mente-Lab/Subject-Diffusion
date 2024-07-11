@@ -1,6 +1,5 @@
-# Subject-Diffusion
-
-
+# Subject-Diffusion (SIGGRAPH 2024)
+ 
 [[Project Page](https://oppo-mente-lab.github.io/subject_diffusion/)] [[Paper](https://arxiv.org/abs/2307.11410)]
 
 ![](figures/banner.png)
